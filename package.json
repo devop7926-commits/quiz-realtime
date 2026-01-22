@@ -1,0 +1,1 @@
+{"name":"quiz-realtime","version":"1.0.0","description":"Quiz tiempo real tipo Kahoot - 50 jugadores","main":"server.js","scripts":{"start":"node server.js"},"dependencies":{"express":"^4.19.0","socket.io":"^4.7.2","cors":"^2.8.5"},"engines":{"node":">=18.0.0"}}

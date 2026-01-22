@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz en Tiempo Real</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-top: 10px;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .game-screen {
+            display: none;
+        }
+        .room-info {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .room-code {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            letter-spacing: 5px;
+        }
+        .players-list {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .player-item {
+            padding: 10px;
+            background: white;
+            margin-bottom: 8px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .question-screen {
+            text-align: center;
+        }
+        .question {
+            font-size: 1.5em;
+            margin-bottom: 30px;
+            color: #333;
+        }
+        .answer-btn {
+            margin: 10px 0;
+            background: #4CAF50;
+        }
+        .ranking {
+            list-style: none;
+        }
+        .rank-item {
+            padding: 15px;
+            background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
+            margin-bottom: 10px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .rank-item:first-child {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: white;
+        }
+        .rank-item:nth-child(2) {
+            background: linear-gradient(135deg, #C0C0C0 0%, #A0A0A0 100%);
+        }
+        .rank-item:nth-child(3) {
+            background: linear-gradient(135deg, #CD7F32 0%, #8B4513 100%);
+            color: white;
+        }
+        .status {
+            text-align: center;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: 600;
+        }
+        .status.success {
+            background: #4CAF50;
+            color: white;
+        }
+        .status.error {
+            background: #f44336;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Quiz Real-Time</h1>
+        
+        <!-- Pantalla de inicio -->
+        <div id="start-screen">
+            <div class="input-group">
+                <label>Nombre:</label>
+                <input type="text" id="playerName" placeholder="Ingresa tu nombre">
+            </div>
+            <div class="input-group">
+                <label>Código de Sala:</label>
+                <input type="text" id="roomCode" placeholder="Código de 4 dígitos">
+            </div>
+            <button onclick="joinRoom()">Unirse a Sala</button>
+            <button onclick="createRoom()">Crear Nueva Sala</button>
+        </div>
+
+        <!-- Pantalla de espera -->
+        <div id="waiting-screen" class="game-screen">
+            <div class="room-info">
+                <p>Código de Sala:</p>
+                <div class="room-code" id="displayRoomCode"></div>
+            </div>
+            <div id="status" class="status"></div>
+            <h3>Jugadores conectados:</h3>
+            <div class="players-list" id="playersList"></div>
+        </div>
+
+        <!-- Pantalla de pregunta -->
+        <div id="question-screen" class="game-screen question-screen">
+            <div class="question" id="questionText"></div>
+            <div id="answersContainer"></div>
+        </div>
+
+        <!-- Pantalla de ranking -->
+        <div id="ranking-screen" class="game-screen">
+            <h2 style="text-align: center; margin-bottom: 20px;">🏆 Ranking Final</h2>
+            <ul class="ranking" id="rankingList"></ul>
+            <button onclick="location.reload()">Nueva Partida</button>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let currentRoom = null;
+        let playerName = null;
+
+        function showScreen(screenId) {
+            document.querySelectorAll('.container > div').forEach(div => {
+                div.style.display = 'none';
+            });
+            document.getElementById(screenId).style.display = 'block';
+        }
+
+        function showStatus(message, type = 'success') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = 'status ' + type;
+            setTimeout(() => status.textContent = '', 3000);
+        }
+
+        function createRoom() {
+            playerName = document.getElementById('playerName').value.trim();
+            if (!playerName) {
+                alert('Por favor ingresa tu nombre');
+                return;
+            }
+            socket.emit('create_room', { name: playerName });
+        }
+
+        function joinRoom() {
+            playerName = document.getElementById('playerName').value.trim();
+            const roomCode = document.getElementById('roomCode').value.trim();
+            
+            if (!playerName || !roomCode) {
+                alert('Por favor ingresa tu nombre y código de sala');
+                return;
+            }
+            
+            socket.emit('join_room', { roomId: roomCode, name: playerName });
+        }
+
+        socket.on('room_created', (data) => {
+            currentRoom = data.roomId;
+            document.getElementById('displayRoomCode').textContent = data.roomId;
+            showScreen('waiting-screen');
+            showStatus('¡Sala creada! Comparte el código con tus amigos');
+        });
+
+        socket.on('room_joined', (data) => {
+            currentRoom = data.roomId;
+            document.getElementById('displayRoomCode').textContent = data.roomId;
+            showScreen('waiting-screen');
+            showStatus('¡Te has unido a la sala!');
+        });
+
+        socket.on('room_error', (data) => {
+            alert(data.message);
+        });
+
+        socket.on('update_players', (data) => {
+            const list = document.getElementById('playersList');
+            list.innerHTML = data.players.map(player => 
+                `<div class="player-item">
+                    <span>${player.name}</span>
+                    <span>Puntos: ${player.score}</span>
+                </div>`
+            ).join('');
+        });
+
+        socket.on('new_question', (data) => {
+            showScreen('question-screen');
+            document.getElementById('questionText').textContent = data.question;
+            
+            const container = document.getElementById('answersContainer');
+            container.innerHTML = data.answers.map((answer, index) => 
+                `<button class="answer-btn" onclick="submitAnswer(${index})">${answer}</button>`
+            ).join('');
+        });
+
+        function submitAnswer(answerIndex) {
+            socket.emit('submit_answer', { 
+                roomId: currentRoom, 
+                answer: answerIndex 
+            });
+            document.getElementById('answersContainer').innerHTML = 
+                '<p style="padding: 20px;">Respuesta enviada! Esperando otros jugadores...</p>';
+        }
+
+        socket.on('show_ranking', (data) => {
+            showScreen('ranking-screen');
+            const rankingList = document.getElementById('rankingList');
+            rankingList.innerHTML = data.ranking.map((player, index) => 
+                `<li class="rank-item">
+                    <span><strong>#${index + 1}</strong> ${player.name}</span>
+                    <span>${player.score} puntos</span>
+                </li>`
+            ).join('');
+        });
+
+        socket.on('game_ended', (data) => {
+            showScreen('ranking-screen');
+            const rankingList = document.getElementById('rankingList');
+            rankingList.innerHTML = data.ranking.map((player, index) => 
+                `<li class="rank-item">
+                    <span><strong>#${index + 1}</strong> ${player.name}</span>
+                    <span>${player.score} puntos</span>
+                </li>`
+            ).join('');
+        });
+    </script>
+</body>
+</html>
